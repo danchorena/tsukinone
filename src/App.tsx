@@ -114,42 +114,48 @@ function App() {
       </header>
 
       {/* Main Content Area */}
-      <section className="relative flex-1 overflow-hidden">
-        {/* Carousel Navigation Buttons (only visible on extremely small screens) */}
+      <section className="relative flex-1 overflow-hidden group/content">
+        {/* Carousel Navigation Buttons */}
         <button 
           onClick={() => scroll("left")}
-          className="absolute left-1 top-1/2 z-30 -translate-y-1/2 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md transition-opacity hover:bg-black/60 xs:hidden"
+          className={cn(
+            "absolute left-4 top-1/2 z-30 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white backdrop-blur-md transition-all duration-300",
+            "opacity-0 group-hover/content:opacity-100 hover:bg-black/60 xs:hidden"
+          )}
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-6 w-6" />
         </button>
         <button 
           onClick={() => scroll("right")}
-          className="absolute right-1 top-1/2 z-30 -translate-y-1/2 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md transition-opacity hover:bg-black/60 xs:hidden"
+          className={cn(
+            "absolute right-4 top-1/2 z-30 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white backdrop-blur-md transition-all duration-300",
+            "opacity-0 group-hover/content:opacity-100 hover:bg-black/60 xs:hidden"
+          )}
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Edge Fading Mask */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-8 bg-gradient-to-r from-[#050505] to-transparent xs:hidden" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-8 bg-gradient-to-l from-[#050505] to-transparent xs:hidden" />
+        {/* Edge Fading Masks (Premium Gradient) */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-16 bg-gradient-to-r from-[#050505] to-transparent xs:hidden" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-16 bg-gradient-to-l from-[#050505] to-transparent xs:hidden" />
 
         <div className={cn(
-          "h-full w-full overflow-y-auto overflow-x-hidden p-6 sm:p-8 no-scrollbar",
+          "h-full w-full overflow-y-auto overflow-x-hidden p-6 sm:p-10 no-scrollbar scroll-smooth",
           "flex flex-col items-center"
         )}>
           {filteredSounds.length > 0 ? (
             <div 
               ref={scrollRef}
               className={cn(
-                "mx-auto w-full transition-all duration-500",
+                "mx-auto w-full transition-all duration-700 ease-in-out",
                 // Grid System
-                "grid grid-cols-1 gap-6",
+                "grid grid-cols-1 gap-6 sm:gap-8",
                 "sm:grid-cols-2",
                 "md:grid-cols-3",
                 "lg:grid-cols-4",
                 "xl:grid-cols-6",
-                // Mobile Carousel Logic (only on xs screens)
-                "max-xs:flex max-xs:overflow-x-auto max-xs:snap-x max-xs:snap-mandatory max-xs:pb-12 max-xs:px-[10vw]"
+                // Mobile Carousel Logic
+                "max-xs:flex max-xs:overflow-x-auto max-xs:snap-x max-xs:snap-mandatory max-xs:pb-16 max-xs:px-[10vw] no-scrollbar"
               )}
             >
               {filteredSounds.map((sound) => (
@@ -157,21 +163,21 @@ function App() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-zinc-600">
-              <Search className="h-12 w-12 mb-4 opacity-20" />
-              <p className="text-sm font-medium">No sounds found</p>
+            <div className="flex flex-col items-center justify-center h-full text-zinc-700 animate-in fade-in duration-700">
+              <Search className="h-16 w-16 mb-6 opacity-10" />
+              <p className="text-base font-medium tracking-wide">No sounds match your focus</p>
             </div>
           )}
           
           {/* Visual Cue for Carousel (xs only) */}
           {filteredSounds.length > 0 && (
-            <div className="mt-4 flex justify-center gap-2 xs:hidden">
+            <div className="mt-8 flex justify-center gap-3 xs:hidden">
               {filteredSounds.map((sound) => (
                 <div 
                   key={`dot-${sound.id}`}
                   className={cn(
-                    "h-1 transition-all duration-300 rounded-full",
-                    states[sound.id]?.isPlaying ? "w-6 bg-primary" : "w-1.5 bg-zinc-800"
+                    "h-1.5 transition-all duration-500 rounded-full",
+                    states[sound.id]?.isPlaying ? "w-8 bg-primary" : "w-1.5 bg-zinc-800"
                   )}
                 />
               ))}

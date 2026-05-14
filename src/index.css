@@ -42,6 +42,10 @@
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-spin-slow: spin 3s linear infinite;
+  --animate-pulse-subtle: pulse-subtle 2s ease-in-out infinite;
+
+  --shadow-primary: 0 0 20px -5px hsl(var(--primary) / 0.3);
+  --shadow-primary-lg: 0 0 30px -5px hsl(var(--primary) / 0.4);
 
   --breakpoint-xs: 480px;
   --breakpoint-sm: 640px;
@@ -50,6 +54,10 @@
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
 
+  @keyframes pulse-subtle {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+  }
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }

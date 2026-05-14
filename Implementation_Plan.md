@@ -22,22 +22,25 @@ This plan outlines the development of a minimalist background noise application 
 2.  **Master Controls:**
     *   Implement "Master Mute" and "Fade All" logic that smoothly ramps volume down/up.
 
-## Phase 2.5: Responsive Layout & Search
-**Goal:** Optimize for different screen sizes and improve sound discoverability.
+## Phase 2: Core Refactor & Responsiveness
+**Status:** ✅ COMPLETED
 
-1.  **Responsive Grid System:**
-    *   Update the main container to use a dynamic grid:
+1.  **Grid System Overhaul:**
+    *   Implemented a dynamic grid system using Tailwind breakpoints:
         *   `xl`: 6 columns
         *   `lg`: 4 columns
         *   `md`: 3 columns
         *   `sm`: 2 columns
-        *   `xs`: 1 column (Carousel View)
-    *   Ensure the `ScrollArea` handles vertical overflow gracefully when many sounds are present.
-2.  **Search Functionality:**
-    *   Add a focused Search Bar in the header (using Shadcn `Input` with a search icon).
-    *   Implement real-time filtering logic to narrow down the sound grid/carousel based on the query.
-3.  **Dynamic Carousel Trigger:**
-    *   Refine the breakpoint where the app switches from Grid to Carousel to ensure a premium look on extremely narrow windows.
+        *   `max-sm`: Horizontal Carousel
+    *   **Fixed**: Transition glitch (6-column flash) by removing `transition-all` on the main container.
+    *   **Fixed**: Top border clipping by adding `pt-4` padding within the carousel container.
+2.  **Responsive Header:**
+    *   Refactored header to show full controls and text down to `640px`.
+    *   Implemented a premium Hamburger Menu for screens below `640px`.
+    *   Added a glassmorphic mobile dropdown with integrated search and audio controls.
+3.  **Search Functionality:**
+    *   Integrated search in both desktop header and mobile dropdown.
+    *   Implemented real-time filtering logic.
 
 ## Phase 3: Premium UI & Animations
 **Goal:** Enhance the visual experience with micro-interactions.

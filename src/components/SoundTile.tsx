@@ -32,8 +32,8 @@ export const SoundTile: React.FC<SoundTileProps> = ({ sound }) => {
   return (
     <Card
       className={cn(
-        "group relative flex flex-col items-center justify-between p-6 transition-all duration-500 ease-out",
-        "max-xs:w-[75vw] max-xs:shrink-0 max-xs:snap-center sm:w-auto sm:shrink-1 sm:snap-align-none",
+        "group relative flex flex-col items-center justify-between p-6 transition-[background-color,border-color,box-shadow,transform,ring] duration-500 ease-out",
+        "max-sm:w-[75vw] max-sm:shrink-0 max-sm:snap-center sm:w-auto sm:shrink-1 sm:snap-align-none",
         "border-zinc-800 bg-zinc-900/20 backdrop-blur-xl hover:bg-zinc-800/40 hover:border-zinc-700",
         state.isPlaying && "border-primary/40 bg-primary/5 shadow-primary-lg ring-1 ring-primary/20"
       )}

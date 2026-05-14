@@ -17,19 +17,33 @@ This plan outlines the development of a minimalist background noise application 
     *   Evaluate `Howler.js` for the frontend to manage multiple concurrent audio streams, or utilize the native Web Audio API for a zero-dependency minimalist approach.
 
 ## Phase 2: Core Playback Engine & UI
-**Goal:** Implement the "Play multiple sounds" feature with basic controls.
+**Goal:** Implement the "Play multiple sounds" feature with independent volume controls and a premium grid interface.
 
-1.  **The SoundTile Component:**
-    *   Create a reusable component containing:
-        *   An interactive Icon (Lucide-React).
-        *   A vertical or horizontal Shadcn `Slider` for volume (0-100%).
-        *   Active/Inactive visual states (glowing borders or opacity shifts).
-2.  **Audio Manager Logic:**
-    *   Create a React hook or Context to manage a map of active sounds.
-    *   Implement "Play on click" logic where multiple sounds can overlap.
-    *   Ensure volume sliders react in real-time to the audio gain nodes.
-3.  **Built-in Library:**
-    *   Include 3-4 high-quality starter sounds (Rain, Storm, White Noise) bundled in the `src-tauri/assets` folder.
+1.  **Audio Context Architecture (`AudioProvider`):**
+    *   Use `Howler.js` to manage a global registry of sound loops.
+    *   Implement a `SoundState` Map to track `id -> { isPlaying, volume }`.
+    *   Functions: `toggleSound(id)`, `setVolume(id, value)`, and `stopAll()`.
+    *   Ensure sounds persist across component re-renders.
+
+2.  **The SoundTile Component:**
+    *   **Visuals:** A Shadcn `Card` with `backdrop-blur` and a `hover:scale-105` transition.
+    *   **States:**
+        *   *Active:* Glowing border (`shadow-[0_0_15px_rgba(var(--primary),0.4)]`) and high icon opacity.
+        *   *Inactive:* Desaturated icon and low border contrast.
+    *   **Control:** Integrated horizontal Shadcn `Slider` for precise volume adjustment (0 to 1.0).
+
+3.  **Hybrid Layout Strategy (Responsive):**
+    *   **Desktop/Large View:** Maintain a standard vertical grid with `ScrollArea`.
+    *   **Mini/Small View:** Automatically switch to a **Horizontal Carousel** when the window width is narrow.
+    *   **CSS Scroll Snap:** Implement `snap-x snap-mandatory` on the container and `snap-center` on tiles to ensure they "lock" into place during horizontal scrolling.
+    *   **Visual Cues:** Add edge-fading (mask-image) to indicate more sounds are available to the sides.
+
+4.  **Starter Sound Library:**
+    *   Curate 3 loopable HQ assets:
+        *   `rain.mp3`: Soft constant rain.
+        *   `storm.mp3`: Distant thunder with rain.
+        *   `white-noise.mp3`: Clean static for focus.
+    *   Place assets in `src/assets/sounds/` for Vite-aware bundling.
 
 ## Phase 4: Custom Sounds & File System Integration
 **Goal:** Allow users to add their own OGG, MP3, WAV, and FLAC files.
@@ -60,3 +74,29 @@ This plan outlines the development of a minimalist background noise application 
     *   Design and generate the application icons (512x512).
 2.  **Optimization:**
     *   Audit the bundle size to ensure the "minimalist" promise extends to the binary size.
+
+## Bug Diagnosis & Fix Plan (Current Issues)
+
+### 1. Issue: "Black Screen" on Icon Click
+*   **Diagnosis:** Side effects (`howl.play()`) are being executed inside the `setStates` reducer/callback in `AudioContext.tsx`. This causes a React reconciliation error that crashes the entire renderer.
+*   **Fix:** Refactor `toggleSound` to trigger the audio side effect *before* or *after* the state update, but never inside the functional update.
+
+### 2. Issue: Carousel not appearing / Static Cards
+*   **Diagnosis:** Conflict between Shadcn `ScrollArea` (Radix) and horizontal flexbox. Radix `ScrollArea` suppresses standard overflow-x behaviors.
+*   **Fix:** Replace `ScrollArea` with a standard `div` using `overflow-x-auto` for the mini-player mode.
+*   **Optimization:** Adjust `SoundTile` width from `280px` to `80vw` for better fit on small windows.
+
+### 3. Issue: Dynamic Icon Access
+*   **Diagnosis:** Accessing icons via `Icons[string]` might fail during bundling if names don't match exactly.
+*   **Fix:** Create an explicit icon mapping to ensure stability.
+
+## Bug Diagnosis: Hitbox & Interaction Issues
+
+### 1. Issue: First Icon (Rain) sometimes non-responsive
+*   **Diagnosis:** The absolute-positioned `ChevronLeft` button and the `w-16` gradient masks are overlapping the first card in the carousel. Even with `pointer-events-none` on the mask, the z-index of the navigation buttons is likely blocking the click.
+*   **Secondary Diagnosis:** `justify-center` on an `overflow-x-auto` container is a known CSS anti-pattern that can cause the scroll origin to be inaccessible or hitboxes to shift.
+
+### 2. The Fix Plan:
+*   **Carousel Geometry:** Remove `justify-center` and use `px-[12vw]` padding to center the tiles while maintaining a standard scroll start point.
+*   **Arrow Refinement:** Move the navigation arrows further to the edges and reduce their hit-area.
+*   **Mask Reduction:** Shrink the edge masks to `w-8` to prevent them from reaching into the interactive center of the tiles.

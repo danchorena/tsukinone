@@ -4,6 +4,7 @@ import { Sound, SoundState } from "@/types";
 import { SOUND_LIBRARY } from "@/lib/sounds";
 import { invoke } from "@tauri-apps/api/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 interface AudioContextType {
   sounds: Sound[];
@@ -24,10 +25,44 @@ const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [customSounds, setCustomSounds] = useState<Sound[]>([]);
-  const [states, setStates] = useState<Record<string, SoundState>>({});
+  const [states, setStates] = useState<Record<string, SoundState>>(() => {
+    try {
+      const saved = localStorage.getItem("tsukinone_states");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
-  const [masterVolume, setMasterVolumeState] = useState(1.0);
-  const [isMasterMuted, setIsMasterMuted] = useState(false);
+  const [masterVolume, setMasterVolumeState] = useState(() => {
+    const saved = localStorage.getItem("tsukinone_masterVolume");
+    return saved ? parseFloat(saved) : 1.0;
+  });
+  const [isMasterMuted, setIsMasterMuted] = useState(() => {
+    const saved = localStorage.getItem("tsukinone_isMasterMuted");
+    return saved === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("tsukinone_states", JSON.stringify(states));
+  }, [states]);
+
+  useEffect(() => {
+    localStorage.setItem("tsukinone_masterVolume", masterVolume.toString());
+  }, [masterVolume]);
+
+  useEffect(() => {
+    localStorage.setItem("tsukinone_isMasterMuted", isMasterMuted.toString());
+  }, [isMasterMuted]);
+
+  useEffect(() => {
+    const unlisten = listen("toggle-mute", () => {
+      setIsMasterMuted((prev) => !prev);
+    });
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, []);
 
   // Combined sounds list
   const sounds = useMemo(() => [...SOUND_LIBRARY, ...customSounds], [customSounds]);
@@ -191,6 +226,24 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return next;
     });
   };
+
+  const initialPlayDone = useRef(false);
+
+  useEffect(() => {
+    if (!initialPlayDone.current && sounds.length >= SOUND_LIBRARY.length) {
+      setTimeout(() => {
+        Object.keys(states).forEach((id) => {
+          if (states[id]?.isPlaying) {
+            const howl = getHowl(id);
+            if (howl && !howl.playing()) {
+              howl.play();
+            }
+          }
+        });
+      }, 500);
+      initialPlayDone.current = true;
+    }
+  }, [sounds, states, getHowl]);
 
   return (
     <AudioContext.Provider value={{ 

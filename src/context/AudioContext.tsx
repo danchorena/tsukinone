@@ -56,6 +56,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [isMasterMuted]);
 
   useEffect(() => {
+    if (!(window as any).__TAURI_INTERNALS__) return;
+    
     const unlisten = listen("toggle-mute", () => {
       setIsMasterMuted((prev) => !prev);
     });
@@ -84,6 +86,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const refreshManifest = useCallback(async () => {
+    if (!(window as any).__TAURI_INTERNALS__) return;
     try {
       const manifest: { custom_sounds: any[] } = await invoke("load_manifest");
       const mappedSounds: Sound[] = manifest.custom_sounds.map((s) => ({
@@ -114,6 +117,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [refreshManifest]);
 
   const registerSound = async (name: string, icon: string, sourcePath: string) => {
+    if (!(window as any).__TAURI_INTERNALS__) return;
     await invoke("register_custom_sound", { name, icon, sourcePath });
     await refreshManifest();
   };
@@ -126,6 +130,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       delete howls.current[id];
     }
     
+    if (!(window as any).__TAURI_INTERNALS__) return;
     await invoke("delete_sound", { id });
     await refreshManifest();
     

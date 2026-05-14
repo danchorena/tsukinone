@@ -1,7 +1,7 @@
 import { Sound } from "@/types";
-import rainSrc from "@/assets/rain.mp3";
-import stormSrc from "@/assets/storm.aiff";
-import whiteNoiseSrc from "@/assets/white-noise.wav";
+import rainSrc from "@/assets/rain.ogg";
+import stormSrc from "@/assets/storm.ogg";
+import whiteNoiseSrc from "@/assets/white-noise.ogg";
 
 export const SOUND_LIBRARY: Sound[] = [
   {

@@ -1,12 +1,16 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from "react";
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from "react";
 import { Howl } from "howler";
-import { Sound, SoundState } from "@/types";
+import { SoundState } from "@/types";
 import { SOUND_LIBRARY } from "@/lib/sounds";
 
 interface AudioContextType {
   states: Record<string, SoundState>;
+  masterVolume: number;
+  isMasterMuted: boolean;
   toggleSound: (id: string) => void;
   setVolume: (id: string, volume: number) => void;
+  setMasterVolume: (volume: number) => void;
+  toggleMasterMute: () => void;
   stopAll: () => void;
 }
 
@@ -21,27 +25,51 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return initial;
   });
 
+  const [masterVolume, setMasterVolumeState] = useState(1.0);
+  const [isMasterMuted, setIsMasterMuted] = useState(false);
+
+  // Howl instances registry
   const howls = useRef<Record<string, Howl>>({});
 
-  useEffect(() => {
-    // Initialize Howls
-    SOUND_LIBRARY.forEach((sound) => {
-      howls.current[sound.id] = new Howl({
-        src: [sound.src],
-        loop: true,
-        volume: 0.5,
-        html5: true, // Use HTML5 audio for better large file support
-      });
+  // Lazy loader for Howl instances
+  const getHowl = useCallback((id: string): Howl | null => {
+    if (howls.current[id]) return howls.current[id];
+
+    const sound = SOUND_LIBRARY.find((s) => s.id === id);
+    if (!sound) return null;
+
+    const newHowl = new Howl({
+      src: [sound.src],
+      loop: true,
+      volume: states[id].volume * (isMasterMuted ? 0 : masterVolume),
+      html5: false, // Use Web Audio API for gapless looping
+      preload: true,
     });
 
+    howls.current[id] = newHowl;
+    return newHowl;
+  }, [masterVolume, isMasterMuted, states]);
+
+  // Clean up on unmount
+  useEffect(() => {
     return () => {
-      // Cleanup on unmount
       Object.values(howls.current).forEach((howl) => howl.unload());
     };
   }, []);
 
+  // Update all volumes when master volume or mute changes
+  useEffect(() => {
+    Object.keys(howls.current).forEach((id) => {
+      const howl = howls.current[id];
+      if (howl) {
+        const targetVolume = states[id].volume * (isMasterMuted ? 0 : masterVolume);
+        howl.volume(targetVolume);
+      }
+    });
+  }, [masterVolume, isMasterMuted, states]);
+
   const toggleSound = (id: string) => {
-    const howl = howls.current[id];
+    const howl = getHowl(id);
     if (!howl) return;
 
     try {
@@ -50,6 +78,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!isCurrentlyPlaying) {
         howl.play();
       } else {
+        // Use fade out for smoother stop if preferred, or just stop
         howl.stop();
       }
 
@@ -64,17 +93,24 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setVolume = (id: string, volume: number) => {
     const howl = howls.current[id];
-    if (!howl) return;
+    // No need to initialize if not already exists (user hasn't played it yet)
+    
+    setStates((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], volume },
+    }));
 
-    try {
-      howl.volume(volume);
-      setStates((prev) => ({
-        ...prev,
-        [id]: { ...prev[id], volume },
-      }));
-    } catch (error) {
-      console.error("Failed to set volume:", error);
+    if (howl) {
+      howl.volume(volume * (isMasterMuted ? 0 : masterVolume));
     }
+  };
+
+  const setMasterVolume = (volume: number) => {
+    setMasterVolumeState(volume);
+  };
+
+  const toggleMasterMute = () => {
+    setIsMasterMuted(!isMasterMuted);
   };
 
   const stopAll = () => {
@@ -89,7 +125,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <AudioContext.Provider value={{ states, toggleSound, setVolume, stopAll }}>
+    <AudioContext.Provider value={{ 
+      states, 
+      masterVolume, 
+      isMasterMuted, 
+      toggleSound, 
+      setVolume, 
+      setMasterVolume, 
+      toggleMasterMute, 
+      stopAll 
+    }}>
       {children}
     </AudioContext.Provider>
   );

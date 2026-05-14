@@ -1,102 +1,77 @@
 # Implementation Plan: SonicBackground (Tauri + Tailwind v4)
 
-This plan outlines the development of a minimalist background noise application built with Tauri, designed for Windows and Linux.
+This plan outlines the development of a minimalist background noise application built with Tauri, designed for Windows and Linux, with a focus on premium aesthetics and robust local-first functionality.
 
-## Phase 1: Foundation & Environment Setup
-**Goal:** Initialize the project with the specific tech stack requested.
+## Phase 1: Foundation & Environment Cleanup
+**Goal:** Align the project with the desired specs and fix initial inconsistencies.
 
-1.  **Project Scaffolding:**
-    *   Initialize a Tauri project using Vite and React (recommended for Shadcn UI).
-    *   **Tauri Config:** Set `resizable: false`, define a standard minimalist window size (e.g., 400x600), and remove the default menu bar.
-2.  **Tailwind CSS v4 Integration:**
-    *   Install `@tailwindcss/vite` and configure the CSS entry point using the new `@import "tailwindcss";` syntax.
-    *   Define a professional, dark-mode-first color palette in the CSS variables.
-3.  **Shadcn UI Setup:**
-    *   Initialize Shadcn and install core components: `Slider`, `Button`, `Card`, `ScrollArea`, and `Dialog`.
-4.  **Audio Engine Selection:**
-    *   Evaluate `Howler.js` for the frontend to manage multiple concurrent audio streams, or utilize the native Web Audio API for a zero-dependency minimalist approach.
+1.  **Configuration Fixes:**
+    *   Update `tauri.conf.json`: Set `resizable: true` (to allow full-screen experience), set `productName` to "Tsukinone", and ensure the identifier is correct.
+2.  **Asset Normalization:**
+    *   Standardize starter sounds: Convert `rain.mp3`, `storm.aiff`, and `white-noise.wav` to a unified format (Ogg/Opus recommended for Linux/Web, or high-bitrate MP3) to ensure consistent looping and load times.
+3.  **Shadcn UI Audit:**
+    *   Ensure `Slider`, `Button`, `Card`, and `Dialog` are properly themed with the dark-mode-first palette.
 
-## Phase 2: Core Playback Engine & UI
-**Goal:** Implement the "Play multiple sounds" feature with independent volume controls and a premium grid interface.
+## Phase 2: Advanced Audio Engine
+**Goal:** Implement a high-performance, gapless audio registry.
 
-1.  **Audio Context Architecture (`AudioProvider`):**
-    *   Use `Howler.js` to manage a global registry of sound loops.
-    *   Implement a `SoundState` Map to track `id -> { isPlaying, volume }`.
-    *   Functions: `toggleSound(id)`, `setVolume(id, value)`, and `stopAll()`.
-    *   Ensure sounds persist across component re-renders.
+1.  **Audio Context Refactor (`AudioProvider`):**
+    *   **Gapless Looping:** Switch `Howler.js` to use Web Audio API (`html5: false`) for short loopable assets to ensure no audible gaps.
+    *   **Lazy Loading:** Refactor to load audio buffers only when the sound is first activated, reducing initial memory footprint.
+    *   **Dynamic Registry:** Allow the `states` and `howls` objects to expand dynamically as custom sounds are added.
+2.  **Master Controls:**
+    *   Implement "Master Mute" and "Fade All" logic that smoothly ramps volume down/up.
 
-2.  **The SoundTile Component:**
-    *   **Visuals:** A Shadcn `Card` with `backdrop-blur` and a `hover:scale-105` transition.
-    *   **States:**
-        *   *Active:* Glowing border (`shadow-[0_0_15px_rgba(var(--primary),0.4)]`) and high icon opacity.
-        *   *Inactive:* Desaturated icon and low border contrast.
-    *   **Control:** Integrated horizontal Shadcn `Slider` for precise volume adjustment (0 to 1.0).
+## Phase 2.5: Responsive Layout & Search
+**Goal:** Optimize for different screen sizes and improve sound discoverability.
 
-3.  **Hybrid Layout Strategy (Responsive):**
-    *   **Desktop/Large View:** Maintain a standard vertical grid with `ScrollArea`.
-    *   **Mini/Small View:** Automatically switch to a **Horizontal Carousel** when the window width is narrow.
-    *   **CSS Scroll Snap:** Implement `snap-x snap-mandatory` on the container and `snap-center` on tiles to ensure they "lock" into place during horizontal scrolling.
-    *   **Visual Cues:** Add edge-fading (mask-image) to indicate more sounds are available to the sides.
+1.  **Responsive Grid System:**
+    *   Update the main container to use a dynamic grid:
+        *   `xl`: 6 columns
+        *   `lg`: 4 columns
+        *   `md`: 3 columns
+        *   `sm`: 2 columns
+        *   `xs`: 1 column (Carousel View)
+    *   Ensure the `ScrollArea` handles vertical overflow gracefully when many sounds are present.
+2.  **Search Functionality:**
+    *   Add a focused Search Bar in the header (using Shadcn `Input` with a search icon).
+    *   Implement real-time filtering logic to narrow down the sound grid/carousel based on the query.
+3.  **Dynamic Carousel Trigger:**
+    *   Refine the breakpoint where the app switches from Grid to Carousel to ensure a premium look on extremely narrow windows.
 
-4.  **Starter Sound Library:**
-    *   Curate 3 loopable HQ assets:
-        *   `rain.mp3`: Soft constant rain.
-        *   `storm.mp3`: Distant thunder with rain.
-        *   `white-noise.mp3`: Clean static for focus.
-    *   Place assets in `src/assets/sounds/` for Vite-aware bundling.
+## Phase 3: Premium UI & Animations
+**Goal:** Enhance the visual experience with micro-interactions.
 
-## Phase 4: Custom Sounds & File System Integration
-**Goal:** Allow users to add their own OGG, MP3, WAV, and FLAC files.
+1.  **SoundTile V2:**
+    *   Add a "Pulse" animation to the icon when active.
+    *   Enhance `backdrop-blur` and add subtle gradients to the active state.
+2.  **Layout Refinements:**
+    *   Ensure the edge-fading masks and carousel indicators are perfectly synchronized with the scroll state.
 
-1.  **File Picker Implementation:**
-    *   Use Tauri's `dialog` API to allow users to browse their local system for audio files.
-2.  **Asset Handling:**
-    *   Implement a Rust command to copy selected user files to the Application Data directory (`app_data_dir`). This prevents "broken links" if the user moves the original file.
-3.  **Metadata Management:**
-    *   Create a JSON manifest in the app data folder to store the mapping of `Custom Name -> File Path -> Chosen Icon`.
-4.  **Format Support:**
-    *   Ensure the frontend handles various MIME types, specifically focusing on FLAC and OGG compatibility.
+## Phase 4: Custom Sounds & Rust Integration
+**Goal:** Securely manage user-provided audio files.
 
-## Phase 5: Customization & Refinement
-**Goal:** Implement icon selection and polish the UI.
+1.  **Rust Command Implementation:**
+    *   `register_custom_sound`: Triggered by frontend picker. Copies file to `AppConfig/sounds/`, generates a unique ID, and updates `manifest.json`.
+    *   `load_manifest`: Reads the JSON mapping of IDs, names, icons, and local paths.
+    *   `delete_sound`: Safely removes the file and manifest entry.
+2.  **Frontend Integration:**
+    *   Add an "Add Sound" tile to the grid.
+    *   Implement a `Dialog` with an **Icon Browser** (searchable Lucide icons) for custom entries.
 
-1.  **Icon Browser:**
-    *   Implement a `Dialog` that lets users pick from a curated set of Lucide icons for their custom sounds.
-2.  **Visual Polish:**
-    *   Add Tailwind v4 transitions for hovering over sound tiles.
-    *   Implement "Master Mute" and "Stop All" global controls.
-3.  **System Tray Integration:**
-    *   Add a Tauri system tray icon so the app can run in the background without a window, with a quick "Mute" option from the tray menu.
+## Phase 5: Persistence & System Integration
+**Goal:** Make the app feel like a native background utility.
 
-## Phase 6: Build & Distribution
-1.  **Cross-Platform Tuning:**
-    *   Configure `tauri.conf.json` for Linux (.deb, .AppImage) and Windows (.msi, .exe).
-    *   Design and generate the application icons (512x512).
-2.  **Optimization:**
-    *   Audit the bundle size to ensure the "minimalist" promise extends to the binary size.
+1.  **State Persistence:**
+    *   Save volume levels and "active" sound IDs to `localStorage` or the Rust manifest so the "atmosphere" is restored on launch.
+2.  **System Tray Integration:**
+    *   Implement a Tauri tray menu: `Toggle Mute`, `Show/Hide Window`, and `Quit`.
+    *   "Close to Tray" behavior: Clicking the window 'X' hides the window instead of killing the process.
 
-## Bug Diagnosis & Fix Plan (Current Issues)
-
-### 1. Issue: "Black Screen" on Icon Click
-*   **Diagnosis:** Side effects (`howl.play()`) are being executed inside the `setStates` reducer/callback in `AudioContext.tsx`. This causes a React reconciliation error that crashes the entire renderer.
-*   **Fix:** Refactor `toggleSound` to trigger the audio side effect *before* or *after* the state update, but never inside the functional update.
-
-### 2. Issue: Carousel not appearing / Static Cards
-*   **Diagnosis:** Conflict between Shadcn `ScrollArea` (Radix) and horizontal flexbox. Radix `ScrollArea` suppresses standard overflow-x behaviors.
-*   **Fix:** Replace `ScrollArea` with a standard `div` using `overflow-x-auto` for the mini-player mode.
-*   **Optimization:** Adjust `SoundTile` width from `280px` to `80vw` for better fit on small windows.
-
-### 3. Issue: Dynamic Icon Access
-*   **Diagnosis:** Accessing icons via `Icons[string]` might fail during bundling if names don't match exactly.
-*   **Fix:** Create an explicit icon mapping to ensure stability.
-
-## Bug Diagnosis: Hitbox & Interaction Issues
-
-### 1. Issue: First Icon (Rain) sometimes non-responsive
-*   **Diagnosis:** The absolute-positioned `ChevronLeft` button and the `w-16` gradient masks are overlapping the first card in the carousel. Even with `pointer-events-none` on the mask, the z-index of the navigation buttons is likely blocking the click.
-*   **Secondary Diagnosis:** `justify-center` on an `overflow-x-auto` container is a known CSS anti-pattern that can cause the scroll origin to be inaccessible or hitboxes to shift.
-
-### 2. The Fix Plan:
-*   **Carousel Geometry:** Remove `justify-center` and use `px-[12vw]` padding to center the tiles while maintaining a standard scroll start point.
-*   **Arrow Refinement:** Move the navigation arrows further to the edges and reduce their hit-area.
-*   **Mask Reduction:** Shrink the edge masks to `w-8` to prevent them from reaching into the interactive center of the tiles.
+## Phase 6: Polish & Distribution
+1.  **Performance Audit:**
+    *   Check memory leaks during frequent toggle/volume changes.
+    *   Optimize bundle size by stripping unused Lucide icons.
+2.  **Build Pipeline:**
+    *   Configure CI/CD for `.deb`, `.AppImage` (Linux) and `.msi` (Windows).
+    *   Generate premium icons (512x512) and splash screens.

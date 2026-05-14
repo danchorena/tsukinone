@@ -1,33 +1,30 @@
 import React from "react";
 import * as Icons from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { Sound } from "@/types";
 import { useAudio } from "@/context/AudioContext";
+import { SOUND_LIBRARY } from "@/lib/sounds";
 
 interface SoundTileProps {
   sound: Sound;
 }
 
-const ICON_MAP: Record<string, React.ElementType> = {
-  CloudRain: Icons.CloudRain,
-  CloudLightning: Icons.CloudLightning,
-  Wind: Icons.Wind,
-  Flame: Icons.Flame,
-  Trees: Icons.Trees,
-  TrainFront: Icons.TrainFront,
-  Waves: Icons.Waves,
-  TrainTrack: Icons.TrainTrack,
-  Palmtree: Icons.Palmtree,
-  Music: Icons.Music,
-};
-
 export const SoundTile: React.FC<SoundTileProps> = ({ sound }) => {
-  const { states, toggleSound, setVolume } = useAudio();
-  const state = states[sound.id];
+  const { states, toggleSound, setVolume, deleteSound } = useAudio();
+  const state = states[sound.id] || { isPlaying: false, volume: 0.5 };
   
-  const IconComponent = ICON_MAP[sound.icon] || Icons.Music;
+  const IconComponent = (Icons as any)[sound.icon] || Icons.Music;
+  const isBuiltIn = SOUND_LIBRARY.some(s => s.id === sound.id);
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm(`Are you sure you want to delete "${sound.name}"?`)) {
+      deleteSound(sound.id);
+    }
+  };
 
   return (
     <Card
@@ -38,6 +35,16 @@ export const SoundTile: React.FC<SoundTileProps> = ({ sound }) => {
         state.isPlaying && "border-primary/40 bg-primary/5 shadow-primary-lg ring-1 ring-primary/20"
       )}
     >
+      {/* Delete Button (Custom Sounds Only) */}
+      {!isBuiltIn && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-3 left-3 h-8 w-8 flex items-center justify-center rounded-full bg-zinc-900/50 text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-500 transition-all duration-300 z-10"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
+
       {/* Icon Button */}
       <div className="relative mb-4">
         <button

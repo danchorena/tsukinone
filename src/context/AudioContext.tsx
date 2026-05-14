@@ -1,9 +1,12 @@
-import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Howl } from "howler";
-import { SoundState } from "@/types";
+import { Sound, SoundState } from "@/types";
 import { SOUND_LIBRARY } from "@/lib/sounds";
+import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface AudioContextType {
+  sounds: Sound[];
   states: Record<string, SoundState>;
   masterVolume: number;
   isMasterMuted: boolean;
@@ -12,43 +15,110 @@ interface AudioContextType {
   setMasterVolume: (volume: number) => void;
   toggleMasterMute: () => void;
   stopAll: () => void;
+  refreshManifest: () => Promise<void>;
+  registerSound: (name: string, icon: string, sourcePath: string) => Promise<void>;
+  deleteSound: (id: string) => Promise<void>;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [states, setStates] = useState<Record<string, SoundState>>(() => {
-    const initial: Record<string, SoundState> = {};
-    SOUND_LIBRARY.forEach((sound) => {
-      initial[sound.id] = { isPlaying: false, volume: 0.5 };
-    });
-    return initial;
-  });
+  const [customSounds, setCustomSounds] = useState<Sound[]>([]);
+  const [states, setStates] = useState<Record<string, SoundState>>({});
 
   const [masterVolume, setMasterVolumeState] = useState(1.0);
   const [isMasterMuted, setIsMasterMuted] = useState(false);
 
+  // Combined sounds list
+  const sounds = useMemo(() => [...SOUND_LIBRARY, ...customSounds], [customSounds]);
+
   // Howl instances registry
   const howls = useRef<Record<string, Howl>>({});
+
+  // Initialize states for built-in sounds
+  useEffect(() => {
+    setStates((prev) => {
+      const next = { ...prev };
+      SOUND_LIBRARY.forEach((sound) => {
+        if (!next[sound.id]) {
+          next[sound.id] = { isPlaying: false, volume: 0.5 };
+        }
+      });
+      return next;
+    });
+  }, []);
+
+  const refreshManifest = useCallback(async () => {
+    try {
+      const manifest: { custom_sounds: any[] } = await invoke("load_manifest");
+      const mappedSounds: Sound[] = manifest.custom_sounds.map((s) => ({
+        id: s.id,
+        name: s.name,
+        icon: s.icon,
+        src: convertFileSrc(s.path),
+      }));
+      setCustomSounds(mappedSounds);
+      
+      setStates((prev) => {
+        const next = { ...prev };
+        mappedSounds.forEach((sound) => {
+          if (!next[sound.id]) {
+            next[sound.id] = { isPlaying: false, volume: 0.5 };
+          }
+        });
+        return next;
+      });
+    } catch (error) {
+      console.error("Failed to load manifest:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initial load
+    refreshManifest();
+  }, [refreshManifest]);
+
+  const registerSound = async (name: string, icon: string, sourcePath: string) => {
+    await invoke("register_custom_sound", { name, icon, sourcePath });
+    await refreshManifest();
+  };
+
+  const deleteSound = async (id: string) => {
+    // Stop sound if playing
+    if (howls.current[id]) {
+      howls.current[id].stop();
+      howls.current[id].unload();
+      delete howls.current[id];
+    }
+    
+    await invoke("delete_sound", { id });
+    await refreshManifest();
+    
+    setStates((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
 
   // Lazy loader for Howl instances
   const getHowl = useCallback((id: string): Howl | null => {
     if (howls.current[id]) return howls.current[id];
 
-    const sound = SOUND_LIBRARY.find((s) => s.id === id);
+    const sound = sounds.find((s) => s.id === id);
     if (!sound) return null;
 
     const newHowl = new Howl({
       src: [sound.src],
       loop: true,
-      volume: states[id].volume * (isMasterMuted ? 0 : masterVolume),
+      volume: (states[id]?.volume || 0.5) * (isMasterMuted ? 0 : masterVolume),
       html5: false, // Use Web Audio API for gapless looping
       preload: true,
     });
 
     howls.current[id] = newHowl;
     return newHowl;
-  }, [masterVolume, isMasterMuted, states]);
+  }, [masterVolume, isMasterMuted, states, sounds]);
 
   // Clean up on unmount
   useEffect(() => {
@@ -62,7 +132,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     Object.keys(howls.current).forEach((id) => {
       const howl = howls.current[id];
       if (howl) {
-        const targetVolume = states[id].volume * (isMasterMuted ? 0 : masterVolume);
+        const targetVolume = (states[id]?.volume || 0.5) * (isMasterMuted ? 0 : masterVolume);
         howl.volume(targetVolume);
       }
     });
@@ -73,12 +143,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!howl) return;
 
     try {
-      const isCurrentlyPlaying = states[id].isPlaying;
+      const isCurrentlyPlaying = states[id]?.isPlaying;
       
       if (!isCurrentlyPlaying) {
         howl.play();
       } else {
-        // Use fade out for smoother stop if preferred, or just stop
         howl.stop();
       }
 
@@ -93,7 +162,6 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setVolume = (id: string, volume: number) => {
     const howl = howls.current[id];
-    // No need to initialize if not already exists (user hasn't played it yet)
     
     setStates((prev) => ({
       ...prev,
@@ -126,6 +194,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <AudioContext.Provider value={{ 
+      sounds,
       states, 
       masterVolume, 
       isMasterMuted, 
@@ -133,7 +202,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setVolume, 
       setMasterVolume, 
       toggleMasterMute, 
-      stopAll 
+      stopAll,
+      refreshManifest,
+      registerSound,
+      deleteSound
     }}>
       {children}
     </AudioContext.Provider>

@@ -1,14 +1,132 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::PathBuf;
+use tauri::{AppHandle, Manager, Runtime};
+use uuid::Uuid;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SoundEntry {
+    pub id: String,
+    pub name: String,
+    pub icon: String,
+    pub path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct Manifest {
+    pub custom_sounds: Vec<SoundEntry>,
+}
+
+fn get_manifest_path<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, String> {
+    let path = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    if !path.exists() {
+        fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+    }
+    Ok(path.join("manifest.json"))
+}
+
+fn get_sounds_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, String> {
+    let path = app.path().app_config_dir().map_err(|e| e.to_string())?.join("sounds");
+    if !path.exists() {
+        fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+    }
+    Ok(path)
+}
+
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+async fn load_manifest<R: Runtime>(app: AppHandle<R>) -> Result<Manifest, String> {
+    let path = get_manifest_path(&app)?;
+    if !path.exists() {
+        return Ok(Manifest::default());
+    }
+    let content = fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let manifest: Manifest = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    Ok(manifest)
+}
+
+#[tauri::command]
+async fn register_custom_sound<R: Runtime>(
+    app: AppHandle<R>,
+    name: String,
+    icon: String,
+    source_path: String,
+) -> Result<SoundEntry, String> {
+    let id = Uuid::new_v4().to_string();
+    let sounds_dir = get_sounds_dir(&app)?;
+    
+    let source_path_buf = PathBuf::from(&source_path);
+    let extension = source_path_buf
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("ogg");
+    
+    let dest_filename = format!("{}.{}", id, extension);
+    let dest_path = sounds_dir.join(&dest_filename);
+    
+    fs::copy(&source_path, &dest_path).map_err(|e| e.to_string())?;
+    
+    let entry = SoundEntry {
+        id: id.clone(),
+        name,
+        icon,
+        path: dest_path.to_string_lossy().into_owned(),
+    };
+    
+    // Update manifest
+    let manifest_path = get_manifest_path(&app)?;
+    let mut manifest = if manifest_path.exists() {
+        let content = fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&content).map_err(|e| e.to_string())?
+    } else {
+        Manifest::default()
+    };
+    
+    manifest.custom_sounds.push(entry.clone());
+    let new_content = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
+    fs::write(manifest_path, new_content).map_err(|e| e.to_string())?;
+    
+    Ok(entry)
+}
+
+#[tauri::command]
+async fn delete_sound<R: Runtime>(app: AppHandle<R>, id: String) -> Result<(), String> {
+    let manifest_path = get_manifest_path(&app)?;
+    if !manifest_path.exists() {
+        return Err("Manifest not found".into());
+    }
+    
+    let content = fs::read_to_string(&manifest_path).map_err(|e| e.to_string())?;
+    let mut manifest: Manifest = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    
+    if let Some(index) = manifest.custom_sounds.iter().position(|s| s.id == id) {
+        let entry = manifest.custom_sounds.remove(index);
+        
+        // Remove file
+        let file_path = PathBuf::from(entry.path);
+        if file_path.exists() {
+            fs::remove_file(file_path).map_err(|e| e.to_string())?;
+        }
+        
+        // Save manifest
+        let new_content = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
+        fs::write(manifest_path, new_content).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err("Sound not found in manifest".into())
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![
+            load_manifest,
+            register_custom_sound,
+            delete_sound
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

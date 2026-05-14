@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { SoundTile } from "@/components/SoundTile";
+import { AddSoundTile } from "@/components/AddSoundTile";
 import { SOUND_LIBRARY } from "@/lib/sounds";
 import { useAudio } from "@/context/AudioContext";
 import { Button } from "@/components/ui/button";
@@ -11,12 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
 function App() {
-  const { stopAll, states, isMasterMuted, toggleMasterMute, masterVolume, setMasterVolume } = useAudio();
+  const { sounds, stopAll, states, isMasterMuted, toggleMasterMute, masterVolume, setMasterVolume } = useAudio();
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const filteredSounds = SOUND_LIBRARY.filter(sound => 
+  const filteredSounds = sounds.filter(sound => 
     sound.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -201,6 +202,7 @@ function App() {
                 {filteredSounds.map((sound) => (
                   <SoundTile key={sound.id} sound={sound} />
                 ))}
+                <AddSoundTile />
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-zinc-700 animate-in fade-in duration-700">

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SoundTile } from "@/components/SoundTile";
 import { AddSoundTile } from "@/components/AddSoundTile";
 import { SOUND_LIBRARY } from "@/lib/sounds";
@@ -10,6 +10,7 @@ import { Slider } from "@/components/ui/slider";
 
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 function App() {
   const { sounds, stopAll, states, isMasterMuted, toggleMasterMute, masterVolume, setMasterVolume } = useAudio();
@@ -30,16 +31,28 @@ function App() {
     });
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle mute on Space, but only if not typing in search
+      if (e.code === "Space" && document.activeElement?.tagName !== "INPUT") {
+        e.preventDefault();
+        toggleMasterMute();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [toggleMasterMute]);
+
   return (
     <main className="flex h-screen flex-col bg-[#050505] text-white overflow-hidden">
       {/* Header */}
       <header className="relative z-50 border-b border-zinc-900 bg-black/20 backdrop-blur-xl">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary">
-              <Settings className="h-4 w-4 animate-spin-slow" />
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/5 bg-zinc-900/50 shadow-2xl">
+              <img src={logo} alt="Tsukinone Logo" className="h-full w-full object-cover" />
             </div>
-            <h1 className="text-lg font-bold tracking-tight">Tsukinone</h1>
+            <h1 className="text-xl font-bold tracking-tight bg-gradient-to-br from-white to-white/40 bg-clip-text text-transparent">Tsukinone</h1>
           </div>
 
           {/* Desktop Search (Hidden on Mobile) */}

@@ -127,11 +127,14 @@ pub fn run() {
         .setup(|app| {
             let toggle_i = MenuItem::with_id(app, "toggle", "Show/Hide Window", true, None::<&str>)?;
             let mute_i = MenuItem::with_id(app, "mute", "Toggle Mute", true, None::<&str>)?;
+            let about_i = MenuItem::with_id(app, "about", "About Tsukinone", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             
             let menu = MenuBuilder::new(app)
                 .item(&toggle_i)
                 .item(&mute_i)
+                .separator()
+                .item(&about_i)
                 .item(&quit_i)
                 .build()?;
 
@@ -155,6 +158,13 @@ pub fn run() {
                             if let Some(window) = app.get_webview_window("main") {
                                 let _ = window.emit("toggle-mute", ());
                             }
+                        }
+                        "about" => {
+                            use tauri_plugin_dialog::DialogExt;
+                            app.dialog()
+                                .message("Tsukinone v0.1.0\n\nA minimalist background sound application built with Tauri and React.\n\nHandcrafted for Deep Focus.")
+                                .title("About Tsukinone")
+                                .show(|_| {});
                         }
                         "quit" => {
                             app.exit(0);

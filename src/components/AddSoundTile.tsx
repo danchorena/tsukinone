@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
-import * as Icons from "lucide-react";
+import { IconRenderer, ICON_MAP } from "@/components/IconRenderer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -129,7 +129,6 @@ export const AddSoundTile: React.FC = () => {
             <Label className="text-zinc-400">Select Icon</Label>
             <div className="grid grid-cols-6 gap-2 max-h-32 overflow-y-auto p-1 no-scrollbar border border-zinc-900 rounded-lg">
               {ATMOSPHERIC_ICONS.map((iconName) => {
-                const Icon = (Icons as any)[iconName] || Icons.Music;
                 return (
                   <button
                     key={iconName}
@@ -142,7 +141,7 @@ export const AddSoundTile: React.FC = () => {
                         : "bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
                     )}
                   >
-                    <Icon className="h-4 w-4" />
+                    <IconRenderer name={iconName} className="h-4 w-4" />
                   </button>
                 );
               })}

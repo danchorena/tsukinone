@@ -71,6 +71,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Howl instances registry
   const howls = useRef<Record<string, Howl>>({});
+  // Track stop timers to avoid stale closures and allow cancellation
+  const stopTimers = useRef<Record<string, any>>({});
 
   // Initialize states for built-in sounds
   useEffect(() => {
@@ -164,6 +166,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     return () => {
       Object.values(howls.current).forEach((howl) => howl.unload());
+      Object.values(stopTimers.current).forEach((timer) => clearTimeout(timer));
     };
   }, []);
 
@@ -184,11 +187,24 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     try {
       const isCurrentlyPlaying = states[id]?.isPlaying;
+      const targetVolume = (states[id]?.volume || 0.5) * (isMasterMuted ? 0 : masterVolume);
       
       if (!isCurrentlyPlaying) {
+        // Cancel any pending stop timer
+        if (stopTimers.current[id]) {
+          clearTimeout(stopTimers.current[id]);
+          delete stopTimers.current[id];
+        }
+        
+        howl.volume(0);
         howl.play();
+        howl.fade(0, targetVolume, 500);
       } else {
-        howl.stop();
+        howl.fade(howl.volume(), 0, 500);
+        stopTimers.current[id] = setTimeout(() => {
+          howl.stop();
+          delete stopTimers.current[id];
+        }, 500);
       }
 
       setStates((prev) => ({
@@ -209,6 +225,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }));
 
     if (howl) {
+      // Direct volume change for slider interaction is better for feedback
       howl.volume(volume * (isMasterMuted ? 0 : masterVolume));
     }
   };
@@ -222,7 +239,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const stopAll = () => {
-    Object.values(howls.current).forEach((howl) => howl.stop());
+    Object.keys(howls.current).forEach((id) => {
+      const howl = howls.current[id];
+      if (howl) {
+        // Cancel any pending timers for this sound
+        if (stopTimers.current[id]) {
+          clearTimeout(stopTimers.current[id]);
+        }
+        
+        howl.fade(howl.volume(), 0, 1000);
+        stopTimers.current[id] = setTimeout(() => {
+          howl.stop();
+          delete stopTimers.current[id];
+        }, 1000);
+      }
+    });
+    
     setStates((prev) => {
       const next = { ...prev };
       Object.keys(next).forEach((id) => {
@@ -236,19 +268,23 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     if (!initialPlayDone.current && sounds.length >= SOUND_LIBRARY.length) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         Object.keys(states).forEach((id) => {
           if (states[id]?.isPlaying) {
             const howl = getHowl(id);
             if (howl && !howl.playing()) {
+              const targetVolume = (states[id]?.volume || 0.5) * (isMasterMuted ? 0 : masterVolume);
+              howl.volume(0);
               howl.play();
+              howl.fade(0, targetVolume, 2000); // 2 second soft entry
             }
           }
         });
-      }, 500);
+      }, 800);
       initialPlayDone.current = true;
+      return () => clearTimeout(timer);
     }
-  }, [sounds, states, getHowl]);
+  }, [sounds, states, getHowl, masterVolume, isMasterMuted]);
 
   return (
     <AudioContext.Provider value={{ 

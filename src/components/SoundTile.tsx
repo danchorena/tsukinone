@@ -1,6 +1,6 @@
 import React from "react";
-import * as Icons from "lucide-react";
 import { Trash2 } from "lucide-react";
+import { IconRenderer } from "@/components/IconRenderer";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,6 @@ export const SoundTile: React.FC<SoundTileProps> = ({ sound }) => {
   const { states, toggleSound, setVolume, deleteSound } = useAudio();
   const state = states[sound.id] || { isPlaying: false, volume: 0.5 };
   
-  const IconComponent = (Icons as any)[sound.icon] || Icons.Music;
   const isBuiltIn = SOUND_LIBRARY.some(s => s.id === sound.id);
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -56,7 +55,7 @@ export const SoundTile: React.FC<SoundTileProps> = ({ sound }) => {
               : "bg-zinc-800/30 text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-200"
           )}
         >
-          <IconComponent className="h-6 w-6" />
+          <IconRenderer name={sound.icon} className="h-6 w-6" />
         </button>
 
         {/* Mini Wave Visualizer (only when playing) */}

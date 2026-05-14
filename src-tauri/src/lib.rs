@@ -162,7 +162,7 @@ pub fn run() {
                         "about" => {
                             use tauri_plugin_dialog::DialogExt;
                             app.dialog()
-                                .message("Tsukinone v0.1.0\n\nA minimalist background sound application built with Tauri and React.\n\nHandcrafted for Deep Focus.")
+                                .message("This app was made for you, so you have an easy to use app to play background sounds and noises to fit your mood, help you focus, work, study or do whatever you want.\n\nThank you for using Tsukinone and consider spreading the word.")
                                 .title("About Tsukinone")
                                 .show(|_| {});
                         }

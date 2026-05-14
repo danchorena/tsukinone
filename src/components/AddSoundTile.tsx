@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
-import { IconRenderer, ICON_MAP } from "@/components/IconRenderer";
+import { IconRenderer } from "@/components/IconRenderer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {

@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { SoundTile } from "@/components/SoundTile";
 import { AddSoundTile } from "@/components/AddSoundTile";
-import { SOUND_LIBRARY } from "@/lib/sounds";
 import { useAudio } from "@/context/AudioContext";
 import { Button } from "@/components/ui/button";
-import { Volume2, VolumeX, Square, Settings, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
+import { Volume2, VolumeX, Square, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 

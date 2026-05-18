@@ -1,8 +1,8 @@
-# 🌙 Tsukinone (つきのね)
+# Tsukinone (つきのね)
 
 **Tsukinone** is a premium, minimalist background sound application designed to help you focus, relax, or sleep. Built with **Tauri**, **React**, and **Rust**, it offers a lightweight yet powerful experience for managing your ambient environment.
 
-## ✨ Features
+## Features
 
 - **High-Fidelity Ambient Sounds:** A curated collection of built-in sounds (Rain, Storm, White Noise, etc.) with high-quality, gapless looping.
 - **Individual Volume Control:** Mix multiple sounds simultaneously to create your perfect soundscape.
@@ -17,7 +17,7 @@
     - **Real-time Search:** Instantly find the sound you're looking for.
 - **Persistence:** Remembers your volume levels and active sounds across sessions.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend:** React 18, TypeScript, Vite
 - **Styling:** Tailwind CSS v4, Framer Motion (for animations)
@@ -26,7 +26,7 @@
 - **Backend:** Rust, Tauri v2
 - **Icons:** Lucide React
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -57,7 +57,7 @@
    npm run tauri build
    ```
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 ├── src/                # Frontend React application
@@ -72,13 +72,13 @@
 └── package.json        # Node dependencies and scripts
 ```
 
-## 🎨 Design Philosophy
+## Design Philosophy
 
 Tsukinone (Sound of the Moon) is built on the principle of **unobtrusive utility**. The interface is designed to be felt, not just seen, using subtle micro-interactions, soft blurs, and a dark-first color palette that reduces eye strain during late-night deep work sessions.
 
 ---
 
-## 💌 A Note from Tsukinone
+## A Note from Tsukinone
 
 This app was made for you, so you have an easy to use tool to play background sounds and noises to fit your mood, help you focus, work, study, or simply find your rhythm. 
 
@@ -86,4 +86,4 @@ Thank you for choosing **Tsukinone**. If it helps you in your daily life, please
 
 ---
 
-Handcrafted with ❤️ for the dreamers and the focus-seekers.
+Handcrafted for the dreamers and the focus-seekers.

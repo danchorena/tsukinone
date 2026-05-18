@@ -58,3 +58,26 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Stage MSI for GitHub Pages
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path staging
+          $msiFile = Get-ChildItem -Path src-tauri\target\release\bundle\msi\*.msi | Select-Object -First 1
+          if ($msiFile) {
+            Copy-Item $msiFile.FullName -Destination staging\tsukinone_latest_x64.msi
+            Write-Host "Successfully staged $($msiFile.Name) as staging/tsukinone_latest_x64.msi"
+          } else {
+            Write-Error "No MSI file found under src-tauri/target/release/bundle/msi/"
+            exit 1
+          }
+
+      - name: Deploy MSI to GitHub Pages
+        if: matrix.platform == 'windows-latest'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./staging
+          publish_branch: gh-pages
+          keep_files: true

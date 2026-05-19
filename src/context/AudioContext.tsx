@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Howl } from "howler";
+import { Howl, Howler } from "howler";
 import { Sound, SoundState } from "@/types";
 import { SOUND_LIBRARY } from "@/lib/sounds";
 import { invoke } from "@tauri-apps/api/core";
@@ -15,6 +15,7 @@ interface AudioContextType {
   setVolume: (id: string, volume: number) => void;
   setMasterVolume: (volume: number) => void;
   toggleMasterMute: () => void;
+  playActive: () => void;
   stopAll: () => void;
   refreshManifest: () => Promise<void>;
   registerSound: (name: string, icon: string, sourcePath: string) => Promise<void>;
@@ -296,6 +297,27 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const playActive = () => {
+    const hasActive = Object.values(states).some(s => s.isPlaying);
+    if (!hasActive) return;
+
+    if (Howler.ctx && Howler.ctx.state === "suspended") {
+      Howler.ctx.resume();
+    }
+
+    Object.keys(states).forEach((id) => {
+      if (states[id]?.isPlaying) {
+        const howl = getHowl(id);
+        if (howl && !howl.playing()) {
+          const targetVolume = (states[id]?.volume ?? 0.5) * (isMasterMuted ? 0 : masterVolume);
+          howl.volume(0);
+          howl.play();
+          howl.fade(0, targetVolume, 500);
+        }
+      }
+    });
+  };
+
   const initialPlayDone = useRef(false);
 
   useEffect(() => {
@@ -328,6 +350,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setVolume, 
       setMasterVolume, 
       toggleMasterMute, 
+      playActive,
       stopAll,
       refreshManifest,
       registerSound,

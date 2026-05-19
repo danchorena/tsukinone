@@ -3,7 +3,7 @@ import { SoundTile } from "@/components/SoundTile";
 import { AddSoundTile } from "@/components/AddSoundTile";
 import { useAudio } from "@/context/AudioContext";
 import { Button } from "@/components/ui/button";
-import { Volume2, VolumeX, Square, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
+import { Volume2, VolumeX, Square, ChevronLeft, ChevronRight, Menu, X, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 
@@ -12,7 +12,7 @@ import { Search } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 function App() {
-  const { sounds, stopAll, states, isMasterMuted, toggleMasterMute, masterVolume, setMasterVolume } = useAudio();
+  const { sounds, playActive, stopAll, states, isMasterMuted, toggleMasterMute, masterVolume, setMasterVolume } = useAudio();
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -96,6 +96,16 @@ function App() {
             <Button 
               variant="ghost" 
               size="sm" 
+              onClick={playActive}
+              className="text-zinc-400 hover:text-white hover:bg-zinc-900 whitespace-nowrap"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              <span>Play</span>
+            </Button>
+
+            <Button 
+              variant="ghost" 
+              size="sm" 
               onClick={stopAll}
               className="text-zinc-400 hover:text-white hover:bg-zinc-900 whitespace-nowrap"
             >
@@ -153,15 +163,27 @@ function App() {
                 />
               </div>
               
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={stopAll}
-                className="text-zinc-400 hover:text-white hover:bg-zinc-900"
-              >
-                <Square className="mr-2 h-4 w-4" />
-                <span>Stop All</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={playActive}
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-900"
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  <span>Play</span>
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={stopAll}
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-900"
+                >
+                  <Square className="mr-2 h-4 w-4" />
+                  <span>Stop All</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>

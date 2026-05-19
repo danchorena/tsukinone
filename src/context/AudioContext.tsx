@@ -318,11 +318,21 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     Object.keys(states).forEach((id) => {
       if (states[id]?.isPlaying) {
         const howl = getHowl(id);
-        if (howl && !howl.playing()) {
+        if (howl) {
+          // Prevent race condition: Cancel pending stop if we clicked pause then play quickly
+          if (stopTimers.current[id]) {
+            clearTimeout(stopTimers.current[id]);
+            delete stopTimers.current[id];
+          }
+
           const targetVolume = (states[id]?.volume ?? 0.5) * (isMasterMuted ? 0 : masterVolume);
-          howl.volume(0);
-          howl.play();
-          howl.fade(0, targetVolume, 500);
+          
+          if (!howl.playing()) {
+            howl.volume(0);
+            howl.play();
+          }
+          
+          howl.fade(howl.volume(), targetVolume, 500);
         }
       }
     });
@@ -334,6 +344,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (states[id]?.isPlaying) {
         const howl = howls.current[id];
         if (howl && howl.playing()) {
+          // Cancel any pending timer just in case
+          if (stopTimers.current[id]) {
+            clearTimeout(stopTimers.current[id]);
+          }
+
           howl.fade(howl.volume(), 0, 500);
           stopTimers.current[id] = setTimeout(() => {
             howl.stop();

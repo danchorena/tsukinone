@@ -153,7 +153,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newHowl = new Howl({
       src: [sound.src],
       loop: true,
-      volume: (states[id]?.volume || 0.5) * (isMasterMuted ? 0 : masterVolume),
+      volume: (states[id]?.volume ?? 0.5) * (isMasterMuted ? 0 : masterVolume),
       html5: false, // Use Web Audio API for gapless looping
       preload: true,
     });
@@ -175,7 +175,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     Object.keys(howls.current).forEach((id) => {
       const howl = howls.current[id];
       if (howl) {
-        const targetVolume = (states[id]?.volume || 0.5) * (isMasterMuted ? 0 : masterVolume);
+        const targetVolume = (states[id]?.volume ?? 0.5) * (isMasterMuted ? 0 : masterVolume);
         howl.volume(targetVolume);
       }
     });
@@ -187,7 +187,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     try {
       const isCurrentlyPlaying = states[id]?.isPlaying;
-      const targetVolume = (states[id]?.volume || 0.5) * (isMasterMuted ? 0 : masterVolume);
+      const targetVolume = (states[id]?.volume ?? 0.5) * (isMasterMuted ? 0 : masterVolume);
       
       if (!isCurrentlyPlaying) {
         // Cancel any pending stop timer
@@ -273,7 +273,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           if (states[id]?.isPlaying) {
             const howl = getHowl(id);
             if (howl && !howl.playing()) {
-              const targetVolume = (states[id]?.volume || 0.5) * (isMasterMuted ? 0 : masterVolume);
+              const targetVolume = (states[id]?.volume ?? 0.5) * (isMasterMuted ? 0 : masterVolume);
               howl.volume(0);
               howl.play();
               howl.fade(0, targetVolume, 2000); // 2 second soft entry

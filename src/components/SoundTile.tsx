@@ -13,7 +13,7 @@ interface SoundTileProps {
 }
 
 export const SoundTile: React.FC<SoundTileProps> = ({ sound }) => {
-  const { states, toggleSound, setVolume, deleteSound } = useAudio();
+  const { states, toggleSound, setVolume, deleteSound, isPaused } = useAudio();
   const state = states[sound.id] || { isPlaying: false, volume: 0.5 };
   
   const isBuiltIn = SOUND_LIBRARY.some(s => s.id === sound.id);
@@ -58,8 +58,8 @@ export const SoundTile: React.FC<SoundTileProps> = ({ sound }) => {
           <IconRenderer name={sound.icon} className="h-6 w-6" />
         </button>
 
-        {/* Mini Wave Visualizer (only when playing) */}
-        {state.isPlaying && (
+        {/* Mini Wave Visualizer (only when playing and not globally paused) */}
+        {state.isPlaying && !isPaused && (
           <div className="absolute -bottom-1 left-1/2 flex -translate-x-1/2 gap-0.5">
             {[1, 2, 3].map((i) => (
               <div 

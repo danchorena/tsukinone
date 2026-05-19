@@ -16,6 +16,8 @@ interface AudioContextType {
   setMasterVolume: (volume: number) => void;
   toggleMasterMute: () => void;
   playActive: () => void;
+  pauseActive: () => void;
+  isPaused: boolean;
   stopAll: () => void;
   refreshManifest: () => Promise<void>;
   registerSound: (name: string, icon: string, sourcePath: string) => Promise<void>;
@@ -53,6 +55,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const saved = localStorage.getItem("tsukinone_isMasterMuted");
     return saved === "true";
   });
+  
+  // We start paused on load to respect browser autoplay policies cleanly
+  const [isPaused, setIsPaused] = useState(true);
 
   useEffect(() => {
     localStorage.setItem("tsukinone_states", JSON.stringify(states));
@@ -208,6 +213,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const finalVolume = baseVolume * (isMasterMuted ? 0 : masterVolume);
       
       if (!isCurrentlyPlaying) {
+        setIsPaused(false); // Turning a sound on should unpause the global state
+        
         // Cancel any pending stop timer
         if (stopTimers.current[id]) {
           clearTimeout(stopTimers.current[id]);
@@ -272,6 +279,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const stopAll = () => {
+    setIsPaused(true);
     Object.keys(howls.current).forEach((id) => {
       const howl = howls.current[id];
       if (howl) {
@@ -301,6 +309,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const hasActive = Object.values(states).some(s => s.isPlaying);
     if (!hasActive) return;
 
+    setIsPaused(false);
+
     if (Howler.ctx && Howler.ctx.state === "suspended") {
       Howler.ctx.resume();
     }
@@ -313,6 +323,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           howl.volume(0);
           howl.play();
           howl.fade(0, targetVolume, 500);
+        }
+      }
+    });
+  };
+
+  const pauseActive = () => {
+    setIsPaused(true);
+    Object.keys(states).forEach((id) => {
+      if (states[id]?.isPlaying) {
+        const howl = howls.current[id];
+        if (howl && howl.playing()) {
+          howl.fade(howl.volume(), 0, 500);
+          stopTimers.current[id] = setTimeout(() => {
+            howl.stop();
+            delete stopTimers.current[id];
+          }, 500);
         }
       }
     });
@@ -351,6 +377,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setMasterVolume, 
       toggleMasterMute, 
       playActive,
+      pauseActive,
+      isPaused,
       stopAll,
       refreshManifest,
       registerSound,

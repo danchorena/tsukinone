@@ -3,7 +3,7 @@ import { SoundTile } from "@/components/SoundTile";
 import { AddSoundTile } from "@/components/AddSoundTile";
 import { useAudio } from "@/context/AudioContext";
 import { Button } from "@/components/ui/button";
-import { Volume2, VolumeX, Square, ChevronLeft, ChevronRight, Menu, X, Play } from "lucide-react";
+import { Volume2, VolumeX, Square, ChevronLeft, ChevronRight, Menu, X, Play, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 
@@ -12,7 +12,8 @@ import { Search } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 function App() {
-  const { sounds, playActive, stopAll, states, isMasterMuted, toggleMasterMute, masterVolume, setMasterVolume } = useAudio();
+  const { sounds, playActive, pauseActive, isPaused, stopAll, states, isMasterMuted, toggleMasterMute, masterVolume, setMasterVolume } = useAudio();
+  const hasActive = Object.values(states).some(s => s.isPlaying);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -93,15 +94,27 @@ function App() {
               </div>
             </div>
 
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={playActive}
-              className="text-zinc-400 hover:text-white hover:bg-zinc-900 whitespace-nowrap"
-            >
-              <Play className="mr-2 h-4 w-4" />
-              <span>Play</span>
-            </Button>
+            {isPaused ? (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={playActive}
+                className={cn("whitespace-nowrap transition-colors", hasActive ? "text-primary hover:text-primary hover:bg-primary/10" : "text-zinc-400 hover:text-white hover:bg-zinc-900")}
+              >
+                <Play className="mr-2 h-4 w-4" />
+                <span>Play</span>
+              </Button>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={pauseActive}
+                className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 whitespace-nowrap transition-colors"
+              >
+                <Pause className="mr-2 h-4 w-4" />
+                <span>Pause</span>
+              </Button>
+            )}
 
             <Button 
               variant="ghost" 
@@ -164,15 +177,27 @@ function App() {
               </div>
               
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={playActive}
-                  className="text-zinc-400 hover:text-white hover:bg-zinc-900"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  <span>Play</span>
-                </Button>
+                {isPaused ? (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={playActive}
+                    className={cn("transition-colors", hasActive ? "text-primary hover:text-primary hover:bg-primary/10" : "text-zinc-400 hover:text-white hover:bg-zinc-900")}
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    <span>Play</span>
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={pauseActive}
+                    className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                  >
+                    <Pause className="mr-2 h-4 w-4" />
+                    <span>Pause</span>
+                  </Button>
+                )}
                 
                 <Button 
                   variant="ghost" 

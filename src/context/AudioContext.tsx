@@ -28,7 +28,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [states, setStates] = useState<Record<string, SoundState>>(() => {
     try {
       const saved = localStorage.getItem("tsukinone_states");
-      return saved ? JSON.parse(saved) : {};
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Sanitize: turn off any sounds that were saved as playing but with 0 volume
+        Object.keys(parsed).forEach((id) => {
+          if (parsed[id].isPlaying && parsed[id].volume === 0) {
+            parsed[id].isPlaying = false;
+          }
+        });
+        return parsed;
+      }
+      return {};
     } catch {
       return {};
     }
@@ -187,7 +197,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     try {
       const isCurrentlyPlaying = states[id]?.isPlaying;
-      const targetVolume = (states[id]?.volume ?? 0.5) * (isMasterMuted ? 0 : masterVolume);
+      let baseVolume = states[id]?.volume ?? 0.5;
+      
+      // Auto-restore volume to 50% if turning on a silent sound
+      if (!isCurrentlyPlaying && baseVolume === 0) {
+        baseVolume = 0.5;
+      }
+      
+      const finalVolume = baseVolume * (isMasterMuted ? 0 : masterVolume);
       
       if (!isCurrentlyPlaying) {
         // Cancel any pending stop timer
@@ -198,7 +215,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         
         howl.volume(0);
         howl.play();
-        howl.fade(0, targetVolume, 500);
+        howl.fade(0, finalVolume, 500);
       } else {
         howl.fade(howl.volume(), 0, 500);
         stopTimers.current[id] = setTimeout(() => {
@@ -209,7 +226,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       setStates((prev) => ({
         ...prev,
-        [id]: { ...prev[id], isPlaying: !isCurrentlyPlaying },
+        [id]: { ...prev[id], isPlaying: !isCurrentlyPlaying, volume: baseVolume },
       }));
     } catch (error) {
       console.error("Failed to toggle sound:", error);
@@ -219,14 +236,29 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setVolume = (id: string, volume: number) => {
     const howl = howls.current[id];
     
-    setStates((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], volume },
-    }));
+    setStates((prev) => {
+      const isCurrentlyPlaying = prev[id]?.isPlaying ?? false;
+      // Auto turn off if volume reaches 0
+      const shouldPlay = volume === 0 ? false : isCurrentlyPlaying;
+      
+      return {
+        ...prev,
+        [id]: { ...prev[id], volume, isPlaying: shouldPlay },
+      };
+    });
 
     if (howl) {
       // Direct volume change for slider interaction is better for feedback
       howl.volume(volume * (isMasterMuted ? 0 : masterVolume));
+      
+      // If we auto-turned it off, stop the sound to save resources
+      if (volume === 0) {
+        if (stopTimers.current[id]) {
+          clearTimeout(stopTimers.current[id]);
+          delete stopTimers.current[id];
+        }
+        howl.stop();
+      }
     }
   };
 
